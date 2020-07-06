@@ -1,0 +1,95 @@
+/*
+ *  将esp8266变成 http的server
+ *  server会根据接受到的讯息去改变接口
+ *   输入 http://server_ip/gpio/0 会将接口变成低电压
+ *   输入 http://server_ip/gpio/1 会将接口变成高电压
+ *  server_ip is the IP address of the ESP8266 module 
+ *  server会在IP的serial 里面显示 
+ */
+
+#include <ESP8266WiFi.h>
+
+const char* ssid = "wifi";         //输入饭店的WIFI名称
+const char* password = "密码";  //输入饭店的WIFI密码
+
+WiFiServer server(80); //开启esp8266 的port 80
+
+void setup() {
+  Serial.begin(115200);  // 开启电脑的serial， 速度设置为115200
+  delay(10);
+
+  // prepare GPIO2
+  pinMode(2, OUTPUT);   //将 D4 接口 D4=2 作为输出
+  digitalWrite(2, LOW); //先将 D4 接口 设置为低电压
+  
+  // Connect to WiFi network
+  Serial.println();//print 空格
+  Serial.println();//print 空格
+  Serial.print("Connecting to "); //印出连线
+  Serial.println(ssid);
+  
+  WiFi.begin(ssid, password); //使用餐厅的wifi和密码开始连接
+  
+  while (WiFi.status() != WL_CONNECTED) { // 如果没有连线成功，会一直跳出...
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");//连接成功 会显示在这里
+  Serial.println("WiFi connected");
+  
+  // 启动server
+  server.begin();
+  Serial.println("Server started");
+
+  // Print the IP address
+  Serial.println(WiFi.localIP());
+}
+
+void loop() {
+  // Check 是否连线，不然就跳出去
+  WiFiClient client = server.available();
+  if (!client) {
+    return;
+  }
+  
+  // 等待传信息到server
+  Serial.println("new client");
+  while(!client.available()){
+    delay(1);
+  }
+  
+  // 收到的信息传过来，存成req
+  String req = client.readStringUntil('\r');
+  Serial.println(req);
+  client.flush();//清空信息流，不然会堵塞
+  
+  
+  // 开始对比收到的信息来决定led灯闪烁与否
+  
+  int val;
+  if (req.indexOf("/gpio/0") != -1)    // 如果收到/gpio/0
+    val = 0;
+  else if (req.indexOf("/gpio/1") != -1) //如果收到/gpio/1
+    val = 1;
+  else {
+    Serial.println("invalid request");
+    client.stop();
+    return;
+  }
+
+  // 依照收到的val 去决定 led灯是否闪烁
+  digitalWrite(2, val);
+  
+  client.flush();
+
+  // prepare回应给发信息的人
+  String s = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>\r\nGPIO is now ";
+  s += (val)?"high":"low";
+  s += "</html>\n";
+
+  // 回应给发信息的人
+  client.print(s);
+  delay(1);
+  Serial.println("Client disonnected");
+
+}
