@@ -9,7 +9,7 @@ ESP8266WebServer esp8266_server(80);// 建立网络服务器对象，该对象�
 void setup(void){
   Serial.begin(9600);   // 启动串口通讯
  
-  pinMode(LED_BUILTIN, OUTPUT); //设置内置LED引脚为输出模式以便控制LED
+  pinMode(2, OUTPUT); //设置内置LED引脚为输出模式以便控制LED, d4
   
   wifiMulti.addAP("Benze", "123456789"); // 将需要连接的一系列WiFi ID和密码输入这里
   Serial.println("Connecting ...");                            // 则尝试使用此处存储的密码进行连接。
@@ -53,7 +53,7 @@ void handleRoot() {
  
 //处理LED控制请求的函数'handleLED'
 void handleLED() {                          
-  digitalWrite(LED_BUILTIN,!digitalRead(LED_BUILTIN));// 改变LED的点亮或者熄灭状态
+  digitalWrite(2,!digitalRead(2));// 改变LED的点亮或者熄灭状态
   esp8266_server.sendHeader("Location","/");          // 跳转回页面根目录
   esp8266_server.send(303);                           // 发送Http相应代码303 跳转  
 }
